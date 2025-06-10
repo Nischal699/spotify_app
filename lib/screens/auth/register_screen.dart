@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:spotify/cliper/cliper.dart';
+import 'package:spotify/constants.dart';
 import 'package:spotify/screens/auth/login_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -10,12 +13,20 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  var emailController = TextEditingController();
-  var passwordController = TextEditingController();
-  var confirmPassword = TextEditingController();
-  var nameController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
-  Widget buildName() {
+  final nameController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
+
+  Widget buildTextField({
+    required String hintText,
+    required IconData icon,
+    required TextEditingController controller,
+    required String? Function(String?) validator,
+    bool obscureText = false,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -24,119 +35,55 @@ class _RegisterScreenState extends State<RegisterScreen> {
           BoxShadow(
             color: Colors.grey.shade400,
             blurRadius: 6,
-            offset: Offset(3, 3),
+            offset: const Offset(3, 3),
           ),
         ],
       ),
       child: TextFormField(
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Please enter your name';
-          }
-          return null; // <-- you should also return null when validation passes
-        },
-        controller: nameController,
+        controller: controller,
+        obscureText: obscureText,
+        validator: validator,
         decoration: InputDecoration(
           border: InputBorder.none,
-          contentPadding: EdgeInsets.only(top: 14),
-          prefixIcon: Icon(Icons.person_outline_rounded),
-          hintText: 'Enter your name :',
+          contentPadding: const EdgeInsets.only(top: 14),
+          prefixIcon: Icon(icon),
+          hintText: hintText,
         ),
       ),
     );
   }
 
-  Widget buildEmail() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade400,
-            blurRadius: 6,
-            offset: Offset(3, 3),
-          ),
-        ],
-      ),
-      child: TextFormField(
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Please enter your email';
-          }
-          return null; // <-- you should also return null when validation passes
-        },
-        controller: emailController,
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.only(top: 14),
-          prefixIcon: Icon(Icons.email_outlined),
-          hintText: 'Enter your email address',
-        ),
-      ),
-    );
-  }
+  Future<void> handleRegister() async {
+    if (_formKey.currentState!.validate()) {
+      final response = await http.post(
+        Uri.parse(
+          '$baseUrl/users/',
+        ), // replace this with your actual working endpoint
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': emailController.text,
+          'password': passwordController.text,
+        }),
+      );
 
-  Widget buildPassword() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade400,
-            blurRadius: 6,
-            offset: Offset(3, 3),
-          ),
-        ],
-      ),
-      child: TextFormField(
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Please enter your password';
-          }
-          return null; // <-- you should also return null when validation passes
-        },
-        controller: passwordController,
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.only(top: 14),
-          prefixIcon: Icon(Icons.lock_outline_rounded),
-          hintText: 'Enter your password :',
-        ),
-      ),
-    );
-  }
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        print('User registered successfully!');
+        // optionally navigate to login or show a success dialog
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      } else {
+        print('Failed to register: ${response.body}');
 
-  Widget buildConfirmPassword() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade400,
-            blurRadius: 6,
-            offset: Offset(3, 3),
-          ),
-        ],
-      ),
-      child: TextFormField(
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Please enter your password again';
-          }
-          return null; // <-- you should also return null when validation passes
-        },
-        controller: confirmPassword,
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.only(top: 14),
-          prefixIcon: Icon(Icons.lock_outline_rounded),
-          hintText: 'Enter your confirm password :',
-        ),
-      ),
-    );
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Registration failed: ${response.body}')),
+        );
+      }
+    }
   }
 
   @override
@@ -166,9 +113,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     right: 80,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                      children: const [
                         Text(
-                          'Login to your account',
+                          'Create your account',
                           style: TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.w800,
@@ -176,7 +123,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         SizedBox(height: 10),
                         Text(
-                          'Please sign in to continue',
+                          'Please sign up to continue',
                           style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w400,
@@ -189,77 +136,115 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    const SizedBox(height: 25),
-                    buildName(),
-                    const SizedBox(height: 20),
-                    buildEmail(),
-                    const SizedBox(height: 25),
-                    buildPassword(),
-                    const SizedBox(height: 20),
-                    buildConfirmPassword(),
-                    const SizedBox(height: 20),
-                    Container(
-                      height: 50,
-                      width: 150,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30),
-                        gradient: LinearGradient(
-                          colors: [Color(0xfff7b858), Color(0xfffca148)],
-                        ),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const SizedBox(height: 20),
+                      buildTextField(
+                        hintText: 'Enter your email address',
+                        icon: Icons.email_outlined,
+                        controller: emailController,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your email';
+                          }
+                          return null;
+                        },
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: const [
-                          SizedBox(width: 20),
-                          Text(
-                            "SIGN UP",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w500,
+                      const SizedBox(height: 25),
+                      buildTextField(
+                        hintText: 'Enter your password',
+                        icon: Icons.lock_outline_rounded,
+                        controller: passwordController,
+                        obscureText: true,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your password';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      buildTextField(
+                        hintText: 'Confirm your password',
+                        icon: Icons.lock_outline_rounded,
+                        controller: confirmPasswordController,
+                        obscureText: true,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please confirm your password';
+                          } else if (value != passwordController.text) {
+                            return 'Passwords do not match';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      InkWell(
+                        onTap: handleRegister,
+                        child: Container(
+                          height: 50,
+                          width: 150,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                            gradient: const LinearGradient(
+                              colors: [Color(0xfff7b858), Color(0xfffca148)],
                             ),
                           ),
-                          SizedBox(width: 20),
-                          Icon(Icons.arrow_forward, color: Colors.white),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 30), // Reduced spacing here
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          "Already have an account? ",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w400,
-                            color: Colors.black,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Text(
+                                "SIGN UP",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              SizedBox(width: 20),
+                              Icon(Icons.arrow_forward, color: Colors.white),
+                            ],
                           ),
                         ),
-                        InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => LoginScreen()),
-                            );
-                          },
-                          child: const Text(
-                            "Log in ",
+                      ),
+                      const SizedBox(height: 30),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            "Already have an account? ",
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w400,
-                              color: Color(0xffFCA148),
+                              color: Colors.black,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20), // Optional extra bottom padding
-                  ],
+                          InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const LoginScreen(),
+                                ),
+                              );
+                            },
+                            child: const Text(
+                              "Log in",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w400,
+                                color: Color(0xffFCA148),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
                 ),
               ),
             ],

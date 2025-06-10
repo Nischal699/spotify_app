@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -18,15 +19,55 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkLoginStatus() async {
-    await Future.delayed(Duration(seconds: 5));
+    print('🔍 [_checkLoginStatus] started');
+    await Future.delayed(const Duration(seconds: 5));
+    print('⏱ 5-second delay completed');
 
     String? token = await _storage.read(key: 'auth_token');
+    print('📦 token read from storage: $token');
 
-    if (!mounted) return; // <-- safeguard after await before using context
+    if (!mounted) {
+      print('⚠️ Widget unmounted, returning early');
+      return;
+    }
 
     if (token != null && token.isNotEmpty) {
-      Navigator.pushReplacementNamed(context, '/home');
+      print('🔑 Token exists, validating with server…');
+      try {
+        final response = await http.get(
+          Uri.parse(
+            'https://spotify-api-pytj.onrender.com/auth/validate_token',
+          ),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+        print('📨 HTTP GET done, statusCode=${response.statusCode}');
+
+        if (!mounted) {
+          print('⚠️ Widget unmounted after HTTP, returning early');
+          return;
+        }
+
+        if (response.statusCode == 200) {
+          print('✅ Token valid — navigating to /home');
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          print(
+            '❌ Token invalid (${response.statusCode}) — deleting & sending to /login',
+          );
+          await _storage.delete(key: 'auth_token');
+          Navigator.pushReplacementNamed(context, '/login');
+        }
+      } catch (e, st) {
+        print('🚨 Token validation failed: $e\n$st');
+        if (!mounted) {
+          print('⚠️ Widget unmounted in catch, returning');
+          return;
+        }
+        await _storage.delete(key: 'auth_token');
+        Navigator.pushReplacementNamed(context, '/login');
+      }
     } else {
+      print('🔓 No token found — navigating to /login');
       Navigator.pushReplacementNamed(context, '/login');
     }
   }

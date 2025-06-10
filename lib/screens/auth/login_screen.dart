@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:spotify/cliper/cliper.dart';
 import 'package:spotify/screens/auth/register_screen.dart';
+import 'package:spotify/services/api_service.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -9,7 +11,54 @@ class LoginScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     var emailController = TextEditingController();
     var passwordController = TextEditingController();
+    final _storage = FlutterSecureStorage();
 
+    // Improved login API Function using ApiService
+    void loginUser() async {
+      final email = emailController.text;
+      final password = passwordController.text;
+
+      if (email.isEmpty || password.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please enter email and password")),
+        );
+        return;
+      }
+
+      try {
+        final result = await ApiService().login(email, password);
+
+        if (result != null) {
+          final token = result['access_token'];
+          print('Logged in token: $token');
+
+          // Save token securely
+          await _storage.write(key: 'auth_token', value: token);
+          var allKeys = await _storage.readAll();
+          print('📦 All storage: $allKeys');
+          // Print the token to console
+          print('✅ Token saved: $token');
+
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Login Successful")));
+
+          // Navigate to home screen
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Login Failed")));
+        }
+      } catch (e) {
+        print('Error logging in: $e');
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
+    }
+
+    // Email Input
     Widget buildEmail() {
       return Container(
         decoration: BoxDecoration(
@@ -19,29 +68,24 @@ class LoginScreen extends StatelessWidget {
             BoxShadow(
               color: Colors.grey.shade400,
               blurRadius: 6,
-              offset: Offset(3, 3),
+              offset: const Offset(3, 3),
             ),
           ],
         ),
         child: TextFormField(
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter your email';
-            }
-            return null; // <-- you should also return null when validation passes
-          },
           controller: emailController,
-          decoration: InputDecoration(
+          decoration: const InputDecoration(
             labelText: 'Email',
             border: InputBorder.none,
             contentPadding: EdgeInsets.only(top: 14),
-            prefixIcon: Icon(Icons.lock_outline_rounded),
+            prefixIcon: Icon(Icons.email_outlined),
             hintText: 'Enter your email address',
           ),
         ),
       );
     }
 
+    // Password Input
     Widget buildPassword() {
       return Container(
         decoration: BoxDecoration(
@@ -51,20 +95,14 @@ class LoginScreen extends StatelessWidget {
             BoxShadow(
               color: Colors.grey.shade400,
               blurRadius: 6,
-              offset: Offset(3, 3),
+              offset: const Offset(3, 3),
             ),
           ],
         ),
         child: TextFormField(
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter your password';
-            }
-            return null;
-          },
-          controller: passwordController, // <-- corrected here
-          obscureText: true, // <-- usually you'd want this for password fields
-          decoration: InputDecoration(
+          controller: passwordController,
+          obscureText: true,
+          decoration: const InputDecoration(
             labelText: 'Password',
             border: InputBorder.none,
             contentPadding: EdgeInsets.only(top: 14),
@@ -100,7 +138,7 @@ class LoginScreen extends StatelessWidget {
                     right: 100,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                      children: const [
                         Text(
                           'Login to your account',
                           style: TextStyle(
@@ -140,34 +178,37 @@ class LoginScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    Container(
-                      height: 50,
-                      width: 150,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30),
-                        gradient: LinearGradient(
-                          colors: [Color(0xfff7b858), Color(0xfffca148)],
+                    InkWell(
+                      onTap: loginUser,
+                      child: Container(
+                        height: 50,
+                        width: 150,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(30),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xfff7b858), Color(0xfffca148)],
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SizedBox(width: 20),
+                            Text(
+                              "Login",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            SizedBox(width: 20),
+                            Icon(Icons.arrow_forward, color: Colors.white),
+                          ],
                         ),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: const [
-                          SizedBox(width: 20),
-                          Text(
-                            "Login",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          SizedBox(width: 20),
-                          Icon(Icons.arrow_forward, color: Colors.white),
-                        ],
-                      ),
                     ),
-                    const SizedBox(height: 30), // reduced space
+                    const SizedBox(height: 30),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -184,7 +225,7 @@ class LoginScreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => RegisterScreen(),
+                                builder: (_) => const RegisterScreen(),
                               ),
                             );
                           },
@@ -199,9 +240,7 @@ class LoginScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(
-                      height: 20,
-                    ), // extra bottom padding if needed
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
