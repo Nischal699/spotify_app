@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -48,6 +49,14 @@ class _SplashScreenState extends State<SplashScreen> {
         }
 
         if (response.statusCode == 200) {
+          // Decode the token to get user ID
+          Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
+          String userId = decodedToken['sub']; // or adjust key if different
+          print('✅ Decoded userId: $userId');
+
+          // Save userId in secure storage for future use
+          await _storage.write(key: 'user_id', value: userId);
+
           print('✅ Token valid — navigating to /home');
           Navigator.pushReplacementNamed(context, '/home');
         } else {
@@ -55,6 +64,7 @@ class _SplashScreenState extends State<SplashScreen> {
             '❌ Token invalid (${response.statusCode}) — deleting & sending to /login',
           );
           await _storage.delete(key: 'auth_token');
+          await _storage.delete(key: 'user_id'); // Clear user_id as well
           Navigator.pushReplacementNamed(context, '/login');
         }
       } catch (e, st) {
@@ -64,6 +74,7 @@ class _SplashScreenState extends State<SplashScreen> {
           return;
         }
         await _storage.delete(key: 'auth_token');
+        await _storage.delete(key: 'user_id');
         Navigator.pushReplacementNamed(context, '/login');
       }
     } else {

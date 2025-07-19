@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:spotify/cliper/cliper.dart';
 import 'package:spotify/screens/auth/register_screen.dart';
 import 'package:spotify/services/api_service.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -32,8 +33,16 @@ class LoginScreen extends StatelessWidget {
           final token = result['access_token'];
           print('Logged in token: $token');
 
-          // Save token securely
+          // Decode token to extract user info
+          Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
+          String userId = decodedToken['sub']; // assuming 'sub' is the user ID
+
+          print('✅ Decoded userId: $userId');
+
+          // Save token and userId securely
           await _storage.write(key: 'auth_token', value: token);
+          await _storage.write(key: 'user_id', value: userId);
+
           var allKeys = await _storage.readAll();
           print('📦 All storage: $allKeys');
           // Print the token to console

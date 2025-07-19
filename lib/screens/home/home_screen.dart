@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:spotify/screens/home/chat_screen.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:jwt_decode/jwt_decode.dart';
+import 'package:spotify/screens/home/chatlist_screen.dart';
 
 class Homescreen extends StatefulWidget {
   const Homescreen({super.key});
@@ -10,22 +12,53 @@ class Homescreen extends StatefulWidget {
 
 class HomescreenState extends State<Homescreen> {
   int _selectedIndex = 0;
-  final String userId = '1'; // Replace with your dynamic user ID
+  String currentUserId = '';
 
-  static const TextStyle optionStyle = TextStyle(
-    fontSize: 30,
-    fontWeight: FontWeight.bold,
-  );
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+
+  @override
+  void initState() {
+    super.initState();
+    loadCurrentUserId();
+  }
+
+  Future<void> loadCurrentUserId() async {
+    String? token = await _storage.read(key: 'auth_token');
+    if (token != null && token.isNotEmpty) {
+      try {
+        Map<String, dynamic> payload = Jwt.parseJwt(token);
+        setState(() {
+          // Adjust the key depending on your token structure
+          currentUserId =
+              payload['sub']?.toString() ?? payload['userId']?.toString() ?? '';
+        });
+      } catch (e) {
+        print('Error decoding JWT token: $e');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (currentUserId.isEmpty) {
+      // Show loading spinner while loading user ID
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     final List<Widget> widgetOptions = <Widget>[
-      Text('HOME PAGE', style: optionStyle),
-      Text('PROFILE PAGE', style: optionStyle),
-      ChatScreen(
-        userId: userId,
-        receiverId: '2',
-      ), // Replaces Text with real ChatScreen
+      const Center(
+        child: Text(
+          'HOME PAGE',
+          style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+        ),
+      ),
+      const Center(
+        child: Text(
+          'PROFILE PAGE',
+          style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+        ),
+      ),
+      ChatListScreen(currentUserId: currentUserId),
     ];
 
     return Scaffold(
@@ -36,7 +69,7 @@ class HomescreenState extends State<Homescreen> {
         ),
         backgroundColor: Colors.black,
       ),
-      body: Center(child: widgetOptions[_selectedIndex]),
+      body: widgetOptions[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
