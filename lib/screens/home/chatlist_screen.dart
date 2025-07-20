@@ -63,37 +63,48 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Chats')),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
     return Scaffold(
-      appBar: AppBar(title: const Text('Chats')),
-      body: ListView.builder(
-        itemCount: users.length,
-        itemBuilder: (context, index) {
-          final user = users[index];
-          return ListTile(
-            title: Text(user['name']),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => Scaffold(
-                    appBar: AppBar(title: Text('Chat with ${user['name']}')),
-                    body: ChatScreen(
-                      userId: widget.currentUserId,
-                      receiverId: user['userId'],
+      appBar: AppBar(
+        title: const Text('Chats'),
+        backgroundColor: Colors.blue,
+        elevation: 1,
+      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : users.isEmpty
+          ? const Center(child: Text('No users found.'))
+          : ListView.separated(
+              itemCount: users.length,
+              separatorBuilder: (_, __) => Divider(height: 1),
+              itemBuilder: (context, index) {
+                final user = users[index];
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.blue[100],
+                    child: Text(
+                      user['name'][0].toUpperCase(),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
-                ),
-              );
-            },
-          );
-        },
-      ),
+                  title: Text(
+                    user['name'],
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  trailing: const Icon(Icons.chat_bubble_outline),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChatScreen(
+                          userId: widget.currentUserId,
+                          receiverId: user['userId'],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
     );
   }
 }

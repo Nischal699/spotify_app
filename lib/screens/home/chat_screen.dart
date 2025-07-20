@@ -333,68 +333,106 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          if (_isLoadingMore && _messages.isNotEmpty)
-            const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Center(child: CircularProgressIndicator()),
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        title: Row(
+          children: [
+            const CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Icon(Icons.person, color: Colors.blue),
             ),
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                final currentDate =
-                    DateTime.tryParse(msg['timestamp'] ?? '') ?? DateTime.now();
-
-                bool showDateHeader = false;
-                if (index == 0) {
-                  showDateHeader = true;
-                } else {
-                  final prevMsg = _messages[index - 1];
-                  final prevDate =
-                      DateTime.tryParse(prevMsg['timestamp'] ?? '') ??
+            const SizedBox(width: 10),
+            Text(
+              'Chat with User ${widget.receiverId}',
+              style: const TextStyle(fontSize: 18),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.blue,
+        elevation: 1,
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            if (_isLoadingMore && _messages.isNotEmpty)
+              const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            Expanded(
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                itemCount: _messages.length,
+                itemBuilder: (context, index) {
+                  final msg = _messages[index];
+                  final currentDate =
+                      DateTime.tryParse(msg['timestamp'] ?? '') ??
                       DateTime.now();
 
-                  if (currentDate.year != prevDate.year ||
-                      currentDate.month != prevDate.month ||
-                      currentDate.day != prevDate.day) {
+                  bool showDateHeader = false;
+                  if (index == 0) {
                     showDateHeader = true;
-                  }
-                }
+                  } else {
+                    final prevMsg = _messages[index - 1];
+                    final prevDate =
+                        DateTime.tryParse(prevMsg['timestamp'] ?? '') ??
+                        DateTime.now();
 
-                return Column(
-                  children: [
-                    if (showDateHeader) _buildDateHeader(currentDate),
-                    _buildMessageItem(msg, index),
-                  ],
-                );
-              },
+                    if (currentDate.year != prevDate.year ||
+                        currentDate.month != prevDate.month ||
+                        currentDate.day != prevDate.day) {
+                      showDateHeader = true;
+                    }
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (showDateHeader) _buildDateHeader(currentDate),
+                      _buildMessageItem(msg, index),
+                    ],
+                  );
+                },
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      hintText: 'Enter message',
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
                     ),
-                    onSubmitted: (_) => _sendMessage(),
-                  ),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: _sendMessage,
+                child: Row(
+                  children: [
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        decoration: const InputDecoration(
+                          hintText: 'Type a message...',
+                          border: InputBorder.none,
+                        ),
+                        onSubmitted: (_) => _sendMessage(),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.send_rounded, color: Colors.blue),
+                      onPressed: _sendMessage,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
