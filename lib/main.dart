@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:spotify/providers/audio_provider.dart'; // <-- import your provider
 import 'package:spotify/routes/app_routes.dart';
 
 void main() {
-  runApp(const Spotify());
+  runApp(
+    MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => AudioProvider())],
+      child: const Spotify(),
+    ),
+  );
 }
 
 class Spotify extends StatelessWidget {

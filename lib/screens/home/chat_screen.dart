@@ -1,4 +1,3 @@
-// ... (your existing imports)
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -43,7 +42,13 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     });
 
-    // WebSocket setup
+    // Scroll to bottom when user types
+    _controller.addListener(() {
+      if (_controller.text.isNotEmpty) {
+        _scrollToBottom();
+      }
+    });
+
     channel = IOWebSocketChannel.connect(
       Uri.parse('wss://spotify-api-pytj.onrender.com/chat/ws/${widget.userId}'),
     );
@@ -84,9 +89,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 'message': decoded['message'],
                 'seen': false,
                 'timestamp': DateTime.now().toIso8601String(),
-                'reactions': <String, int>{}, // initialize empty reactions map
+                'reactions': <String, int>{},
               });
             });
+            _scrollToBottom();
           }
         }
 
@@ -102,11 +108,10 @@ class _ChatScreenState extends State<ChatScreen> {
           });
         }
 
-        // Handle reaction updates (add/remove)
         if (decoded['type'] == 'reaction_update') {
           final messageId = decoded['message_id'];
           final emoji = decoded['emoji'];
-          final action = decoded['action']; // "add" or "remove"
+          final action = decoded['action'];
 
           setState(() {
             for (var msg in _messages) {
@@ -134,6 +139,16 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
   Future<List<Map<String, dynamic>>> fetchMessageHistory({
     bool append = false,
   }) async {
@@ -154,7 +169,6 @@ class _ChatScreenState extends State<ChatScreen> {
           'message': msg['content'],
           'seen': msg['is_seen'],
           'timestamp': msg['timestamp'],
-          // Use reactions map, convert to Map<String,int>
           'reactions': Map<String, int>.from(msg['reactions'] ?? {}),
         };
       }).toList();
@@ -187,17 +201,31 @@ class _ChatScreenState extends State<ChatScreen> {
       };
       channel.sink.add(jsonEncode(payload));
       _controller.clear();
+      _scrollToBottom();
     }
+  }
+
+  void _sendReaction(int index, String emoji) {
+    final message = _messages[index];
+    final payload = {
+      "type": "add_reaction",
+      "message_id": message['id'],
+      "emoji": emoji,
+    };
+    channel.sink.add(jsonEncode(payload));
   }
 
   void _showEmojiPicker(BuildContext context, int index) {
     showModalBottomSheet(
       context: context,
-      builder: (context) {
+      backgroundColor: Colors.grey[900],
+      builder: (_) {
         return Wrap(
           children: emojiOptions.map((emoji) {
             return ListTile(
-              title: Text(emoji, style: const TextStyle(fontSize: 24)),
+              title: Center(
+                child: Text(emoji, style: const TextStyle(fontSize: 28)),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _sendReaction(index, emoji);
@@ -209,17 +237,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  void _sendReaction(int index, String emoji) {
-    final message = _messages[index];
-    final payload = {
-      "type": "add_reaction",
-      "message_id": message['id'],
-      "emoji": emoji,
-    };
-    channel.sink.add(jsonEncode(payload));
-    // Note: do not update UI here; wait for WS reaction_update message from server
-  }
-
   String formatTimestamp(String isoString) {
     try {
       return DateFormat('hh:mm a').format(DateTime.parse(isoString));
@@ -228,95 +245,52 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  Widget _buildDateHeader(DateTime date) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: Center(
-        child: Text(
-          DateFormat('EEEE, MMM d, yyyy').format(date),
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMessageItem(Map<String, dynamic> msg, int index) {
+  Widget _buildMessage(Map<String, dynamic> msg, int index) {
     final isMe = msg['sender_id'].toString() == widget.userId;
-    final seen = msg['seen'] == true;
-    final timestamp = msg['timestamp'] ?? "";
-
-    final reactions = (msg['reactions'] as Map<String, int>?) ?? {};
+    final reactions = msg['reactions'] as Map<String, int>? ?? {};
 
     return GestureDetector(
       onLongPress: () => _showEmojiPicker(context, index),
-      child: Align(
+      child: Container(
         alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-        child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-          padding: const EdgeInsets.all(10.0),
-          decoration: BoxDecoration(
-            color: isMe ? Colors.green[200] : Colors.grey[300],
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: isMe
-                ? CrossAxisAlignment.end
-                : CrossAxisAlignment.start,
-            children: [
-              Text(
-                isMe ? 'You' : 'User ${msg['sender_id']}',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  color: Colors.grey[700],
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Column(
+          crossAxisAlignment: isMe
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              constraints: const BoxConstraints(maxWidth: 300),
+              decoration: BoxDecoration(
+                color: isMe ? Colors.greenAccent[400] : Colors.grey[800],
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                msg['message'] ?? '',
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+              ),
+            ),
+            if (reactions.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Wrap(
+                  spacing: 6,
+                  children: reactions.entries.map((entry) {
+                    return Chip(
+                      label: Text('${entry.key} ${entry.value}'),
+                      backgroundColor: Colors.black54,
+                      labelStyle: const TextStyle(color: Colors.white),
+                    );
+                  }).toList(),
                 ),
               ),
-              const SizedBox(height: 4),
-              Text.rich(
-                TextSpan(
-                  text: msg['message'] ?? '',
-                  children: isMe
-                      ? [
-                          TextSpan(
-                            text: seen ? '  👁️' : '  ✅',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ]
-                      : [],
-                ),
-              ),
-              if (reactions.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4.0),
-                  child: Wrap(
-                    spacing: 6,
-                    children: reactions.entries.map((entry) {
-                      final emoji = entry.key;
-                      final count = entry.value;
-                      return Chip(
-                        label: Text(
-                          '$emoji $count',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        backgroundColor: Colors.grey[200],
-                      );
-                    }).toList(),
-                  ),
-                ),
-              const SizedBox(height: 6),
-              Text(
-                formatTimestamp(timestamp),
-                style: TextStyle(fontSize: 10, color: Colors.grey[500]),
-              ),
-            ],
-          ),
+            const SizedBox(height: 2),
+            Text(
+              formatTimestamp(msg['timestamp'] ?? ''),
+              style: TextStyle(color: Colors.grey[500], fontSize: 10),
+            ),
+          ],
         ),
       ),
     );
@@ -333,106 +307,85 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: const Color(0xFF1E1E1E),
       appBar: AppBar(
+        backgroundColor: const Color(0xFF1C1C1C),
+        elevation: 0.5,
+        iconTheme: const IconThemeData(
+          color: Colors.white, // bright back arrow
+        ),
         title: Row(
           children: [
             const CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Icon(Icons.person, color: Colors.blue),
+              backgroundColor: Colors.green,
+              child: Icon(Icons.person, color: Colors.white),
             ),
-            const SizedBox(width: 10),
-            Text(
-              'Chat with User ${widget.receiverId}',
-              style: const TextStyle(fontSize: 18),
-            ),
-          ],
-        ),
-        backgroundColor: Colors.blue,
-        elevation: 1,
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            if (_isLoadingMore && _messages.isNotEmpty)
-              const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Center(child: CircularProgressIndicator()),
-              ),
+            const SizedBox(width: 12),
             Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                itemCount: _messages.length,
-                itemBuilder: (context, index) {
-                  final msg = _messages[index];
-                  final currentDate =
-                      DateTime.tryParse(msg['timestamp'] ?? '') ??
-                      DateTime.now();
-
-                  bool showDateHeader = false;
-                  if (index == 0) {
-                    showDateHeader = true;
-                  } else {
-                    final prevMsg = _messages[index - 1];
-                    final prevDate =
-                        DateTime.tryParse(prevMsg['timestamp'] ?? '') ??
-                        DateTime.now();
-
-                    if (currentDate.year != prevDate.year ||
-                        currentDate.month != prevDate.month ||
-                        currentDate.day != prevDate.day) {
-                      showDateHeader = true;
-                    }
-                  }
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (showDateHeader) _buildDateHeader(currentDate),
-                      _buildMessageItem(msg, index),
-                    ],
-                  );
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
+              child: Row(
+                children: [
+                  Text(
+                    'User ${widget.receiverId}',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: _controller,
-                        decoration: const InputDecoration(
-                          hintText: 'Type a message...',
-                          border: InputBorder.none,
-                        ),
-                        onSubmitted: (_) => _sendMessage(),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.send_rounded, color: Colors.blue),
-                      onPressed: _sendMessage,
-                    ),
-                  ],
-                ),
+                  ),
+                  const Icon(Icons.arrow_drop_down, color: Colors.white),
+                ],
               ),
             ),
           ],
         ),
+      ),
+      body: Column(
+        children: [
+          if (_isLoadingMore)
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: CircularProgressIndicator(color: Colors.greenAccent),
+            ),
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              reverse: false,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                return _buildMessage(_messages[index], index);
+              },
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.grey[900],
+              borderRadius: BorderRadius.circular(30),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      hintText: 'Type a message...',
+                      hintStyle: TextStyle(color: Colors.white54),
+                      border: InputBorder.none,
+                    ),
+                    onSubmitted: (_) => _sendMessage(),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.send, color: Colors.greenAccent),
+                  onPressed: _sendMessage,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

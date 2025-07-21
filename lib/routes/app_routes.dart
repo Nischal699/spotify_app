@@ -8,6 +8,8 @@ import 'package:spotify/screens/home/search_screen.dart';
 import 'package:spotify/screens/home/playlist_screen.dart';
 import 'package:spotify/screens/home/liked_songs_screen.dart';
 import 'package:spotify/screens/profile/profile_screen.dart';
+import 'package:spotify/services/track_api_service.dart';
+import 'package:spotify/widgets/home_loader.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -24,10 +26,14 @@ class AppRoutes {
     splash: (context) => SplashScreen(),
     login: (context) => LoginScreen(),
     register: (context) => RegisterScreen(),
-    home: (context) => Homescreen(),
+    home: (context) => const HomeLoader(),
     player: (context) => PlayerScreen(),
     search: (context) => SearchScreen(),
-    playlist: (context) => PlaylistScreen(),
+    playlist: (context) => PlayListScreen(
+      apiService: TrackApiService(
+        baseUrl: 'https://spotify-api-pytj.onrender.com',
+      ),
+    ),
     likedSongs: (context) => LikedSongsScreen(),
     profile: (context) => ProfileScreen(),
   };
