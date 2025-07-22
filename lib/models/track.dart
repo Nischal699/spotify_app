@@ -17,10 +17,10 @@ class Track {
     this.fileUrl,
   });
 
-  // ✅ Computed getter for full audio URL
   String get fullAudioUrl {
     if (fileUrl == null || fileUrl!.isEmpty) return '';
-    return '$_baseUrl$fileUrl';
+    // encode URI components except the base URL
+    return '$_baseUrl${Uri.encodeFull(fileUrl!)}';
   }
 
   factory Track.fromJson(Map<String, dynamic> json) => Track(

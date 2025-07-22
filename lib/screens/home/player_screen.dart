@@ -12,18 +12,20 @@ class PlayerScreen extends StatefulWidget {
 class _PlayerScreenState extends State<PlayerScreen> {
   late String title;
   late String audioUrl;
+  bool _isAudioSet = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final args =
-        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-    title = args['title'] ?? 'Unknown Title';
-    audioUrl = args['audioUrl'] ?? '';
-
-    // Set audio only once
-    final audioProvider = Provider.of<AudioProvider>(context, listen: false);
-    audioProvider.setAudio(audioUrl);
+    if (!_isAudioSet) {
+      final args =
+          ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+      title = args['title'] ?? 'Unknown Title';
+      audioUrl = args['audioUrl'] ?? '';
+      final audioProvider = Provider.of<AudioProvider>(context, listen: false);
+      audioProvider.setAudio(audioUrl);
+      _isAudioSet = true;
+    }
   }
 
   @override

@@ -56,6 +56,31 @@ class HomescreenState extends State<Homescreen> {
     ];
 
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        elevation: 4,
+        centerTitle: true,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.account_circle, color: Colors.amber, size: 36),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'Welcome, $currentUserEmail',
+                style: const TextStyle(
+                  color: Colors.amberAccent,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        shadowColor: Colors.amber.withOpacity(0.3),
+      ),
       body: widgetOptions[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.black,
@@ -71,6 +96,30 @@ class HomescreenState extends State<Homescreen> {
           BottomNavigationBarItem(icon: Icon(Icons.message), label: 'Chat'),
         ],
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.amber,
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+          elevation: 8,
+          minimumSize: const Size(200, 50), // fixed width & height
+        ),
+        icon: const Icon(Icons.music_note, size: 28, color: Colors.black87),
+        label: const Text(
+          'Open Playlist',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        onPressed: () {
+          Navigator.pushNamed(context, '/playlist');
+        },
+      ),
     );
   }
 }
@@ -83,142 +132,30 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.black, Color(0xFF1DB954)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Welcome, $userEmail',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 30),
-              _sectionTitle('Featured Playlists'),
-              const SizedBox(height: 12),
-              _horizontalCards([
-                'Top Hits',
-                'Chill Vibes',
-                'Workout',
-                'Jazz Classics',
-              ]),
-              const SizedBox(height: 30),
-              _sectionTitle('Recently Played'),
-              _trackTile(
-                context,
-                'Song 1 - Artist A',
-                'https://example.com/song1.mp3',
-              ),
-              _trackTile(
-                context,
-                'Song 2 - Artist B',
-                'https://example.com/song2.mp3',
-              ),
-              _trackTile(
-                context,
-                'Song 3 - Artist C',
-                'https://example.com/song3.mp3',
-              ),
-              const SizedBox(height: 30),
-              _sectionTitle('Top Charts'),
-              _trackTile(
-                context,
-                'Chart 1 - Artist X',
-                'https://example.com/chart1.mp3',
-              ),
-              _trackTile(
-                context,
-                'Chart 2 - Artist Y',
-                'https://example.com/chart2.mp3',
-              ),
-              _trackTile(
-                context,
-                'Chart 3 - Artist Z',
-                'https://example.com/chart3.mp3',
-              ),
-            ],
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.music_note, size: 100, color: Colors.amber),
+          const SizedBox(height: 20),
+          Text(
+            'Welcome to Spotify',
+            style: TextStyle(
+              fontSize: 36,
+              fontWeight: FontWeight.bold,
+              color: Colors.amber,
+            ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _sectionTitle(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 20,
-        fontWeight: FontWeight.w600,
-      ),
-    );
-  }
-
-  Widget _horizontalCards(List<String> titles) {
-    return SizedBox(
-      height: 140,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: titles.length,
-        itemBuilder: (context, index) {
-          return Container(
-            width: 120,
-            margin: const EdgeInsets.only(right: 12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.purpleAccent, Colors.deepPurple],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Text(
-                  titles[index],
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _trackTile(BuildContext context, String title, String audioUrl) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      color: Colors.grey[900],
-      child: ListTile(
-        leading: const Icon(Icons.music_note, color: Colors.white70),
-        title: Text(title, style: const TextStyle(color: Colors.white)),
-        trailing: const Icon(Icons.play_arrow, color: Colors.amber),
-        onTap: () {
-          Navigator.pushNamed(
-            context,
-            '/playlist',
-            arguments: {'title': title, 'audioUrl': audioUrl},
-          );
-        },
+          const SizedBox(height: 10),
+          Text(
+            'User ID: $userId',
+            style: const TextStyle(fontSize: 16, color: Colors.white70),
+          ),
+          Text(
+            'Email: $userEmail',
+            style: const TextStyle(fontSize: 16, color: Colors.white70),
+          ),
+        ],
       ),
     );
   }
