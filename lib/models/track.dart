@@ -6,6 +6,8 @@ class Track {
   int? duration;
   String? fileUrl;
 
+  static const String _baseUrl = 'https://spotify-api-pytj.onrender.com';
+
   Track({
     this.id,
     required this.title,
@@ -14,6 +16,12 @@ class Track {
     this.duration,
     this.fileUrl,
   });
+
+  // ✅ Computed getter for full audio URL
+  String get fullAudioUrl {
+    if (fileUrl == null || fileUrl!.isEmpty) return '';
+    return '$_baseUrl$fileUrl';
+  }
 
   factory Track.fromJson(Map<String, dynamic> json) => Track(
     id: json['id'],

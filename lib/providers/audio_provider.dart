@@ -24,15 +24,19 @@ class AudioProvider extends ChangeNotifier {
     });
 
     _audioPlayer.onPlayerStateChanged.listen((state) {
-      _isPlaying = state == PlayerState.playing;
+      _isPlaying = false;
+      _currentPosition = Duration.zero;
       notifyListeners();
     });
   }
 
   Future<void> setAudio(String url) async {
-    await _audioPlayer.setSourceUrl(url);
-    // Optionally auto-start play:
-    await _audioPlayer.resume();
+    try {
+      await _audioPlayer.setSourceUrl(url);
+      await _audioPlayer.resume();
+    } catch (e) {
+      debugPrint("Audio load/play error: $e");
+    }
   }
 
   Future<void> playPause() async {
