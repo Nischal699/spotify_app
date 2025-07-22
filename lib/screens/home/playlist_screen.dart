@@ -76,7 +76,9 @@ class _PlayListScreenState extends State<PlayListScreen> {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
                   onTap: () {
-                    print("Navigating to player with URL: ${track.fileUrl}");
+                    print(
+                      "Navigating to player with URL: ${track.fullAudioUrl}",
+                    );
                     Navigator.pushNamed(
                       context,
                       '/player',

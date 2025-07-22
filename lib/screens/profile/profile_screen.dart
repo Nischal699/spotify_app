@@ -49,6 +49,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  Future<void> logout() async {
+    await _storage.delete(key: 'auth_token');
+    if (mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -66,16 +73,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _profileCard(),
               const SizedBox(height: 30),
               _optionTile(Icons.settings, 'Settings', () {
-                // Navigate to settings screen
+                // Navigate to settings screen (to be implemented)
               }),
               const SizedBox(height: 12),
-              _optionTile(Icons.logout, 'Logout', () {
-                // Logout logic
-              }),
+              _optionTile(Icons.logout, 'Logout', logout),
             ],
           ),
         ),
@@ -87,8 +93,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.grey.shade900, Colors.black],
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1DB954), Colors.black],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -96,7 +102,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.greenAccent.withOpacity(0.3),
-            blurRadius: 15,
+            blurRadius: 12,
             offset: const Offset(0, 6),
           ),
         ],
@@ -120,7 +126,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 6),
           Text(
             email ?? 'No Email Found',
-            style: TextStyle(color: Colors.grey.shade400, fontSize: 16),
+            style: const TextStyle(color: Colors.white70, fontSize: 16),
           ),
         ],
       ),

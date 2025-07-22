@@ -24,8 +24,7 @@ class AudioProvider extends ChangeNotifier {
     });
 
     _audioPlayer.onPlayerStateChanged.listen((state) {
-      _isPlaying = false;
-      _currentPosition = Duration.zero;
+      _isPlaying = (state == PlayerState.playing);
       notifyListeners();
     });
   }
